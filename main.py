@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request, jsonify
 from instagrapi import Client
-from instagrapi.exceptions import ChallengeRequired, FeedbackRequired, PleaseWaitFewMinutes
 import threading
 import time
 import random
@@ -13,12 +12,10 @@ app.secret_key = "sujal_hawk_final_2025"
 state = {"running": False, "sent": 0, "logs": [], "start_time": None}
 cfg = {"sessionid": "", "thread_id": 0, "messages": [], "group_name": "", "delay": 12, "cycle": 35, "break_sec": 40}
 
-# Original undetected devices
+# Undetected devices
 DEVICES = [
     {"phone_manufacturer": "Google", "phone_model": "Pixel 8 Pro", "android_version": 15, "android_release": "15.0.0", "app_version": "323.0.0.46.109"},
     {"phone_manufacturer": "Samsung", "phone_model": "SM-S928B", "android_version": 15, "android_release": "15.0.0", "app_version": "324.0.0.41.110"},
-    {"phone_manufacturer": "OnePlus", "phone_model": "PJZ110", "android_version": 15, "android_release": "15.0.0", "app_version": "322.0.0.40.108"},
-    {"phone_manufacturer": "Xiaomi", "phone_model": "23127PN0CC", "android_version": 15, "android_release": "15.0.0", "app_version": "325.0.0.42.111"},
 ]
 
 def log(msg):
@@ -42,8 +39,6 @@ def bomber():
         return
 
     sent_in_cycle = 0
-    current_delay = cfg["delay"]
-
     while state["running"]:
         try:
             msg = random.choice(cfg["messages"])
@@ -56,28 +51,24 @@ def bomber():
                 if cfg["group_name"]:
                     new_name = f"{cfg['group_name']} → {datetime.now().strftime('%I:%M:%S %p')}"
                     try:
-                        cl.direct_thread_update_title(cfg["thread_id"], new_name)
+                        # Latest instagrapi me sahi method
+                        cl.direct_thread_change_title(cfg["thread_id"], new_name)
                         log(f"GROUP NAME CHANGED → {new_name}")
-                    except Exception as e:
-                        log(f"Name change failed → {str(e)[:50]}")
-                        current_delay += 8
+                    except:
+                        try:
+                            cl.direct_thread_update_group_name(cfg["thread_id"], new_name)
+                            log(f"GROUP NAME CHANGED → {new_name}")
+                        except Exception as e:
+                            log(f"Name change failed → {str(e)[:50]}")
 
                 log(f"BREAK {cfg['break_sec']} SECONDS")
                 time.sleep(cfg["break_sec"])
                 sent_in_cycle = 0
-                current_delay = cfg["delay"]
 
-            time.sleep(current_delay + random.uniform(-3, 5))
-        except ChallengeRequired or FeedbackRequired:
-            log("Challenge/Feedback → skipping")
-            time.sleep(30)
-        except PleaseWaitFewMinutes:
-            log("Rate limit → waiting 8 min")
-            time.sleep(480)
+            time.sleep(cfg["delay"] + random.uniform(-2, 3))
         except Exception as e:
             log(f"SEND FAILED → {str(e)[:60]}")
-            current_delay += 5
-            time.sleep(current_delay)
+            time.sleep(15)
 
 @app.route("/")
 def index():
